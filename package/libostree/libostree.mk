@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LIBOSTREE_VERSION = 2018.9
+LIBOSTREE_VERSION = 2020.6
 LIBOSTREE_SOURCE = libostree-$(LIBOSTREE_VERSION).tar.xz
 LIBOSTREE_SITE = https://github.com/ostreedev/ostree/releases/download/v$(LIBOSTREE_VERSION)
 
@@ -21,6 +21,14 @@ LIBOSTREE_CONF_OPTS += \
 	--disable-gtk-doc-html \
 	--disable-gtk-doc-pdf \
 	--disable-man
+
+ifeq ($(BR2_PACKAGE_GOBJECT_INTROSPECTION),y)
+LIBOSTREE_DEPENDENCIES += gobject-introspection
+LIBOSTREE_CONF_OPTS += --enable-introspection
+LIBOSTREE_MAKE_OPTS = INTROSPECTION_SCANNER_ENV=
+else
+LIBOSTREE_CONF_OPTS += --disable-introspection
+endif
 
 ifeq ($(BR2_PACKAGE_OPENSSL),y)
 LIBOSTREE_CONF_OPTS += --with-openssl
@@ -66,6 +74,15 @@ LIBOSTREE_CONF_OPTS += --with-selinux
 LIBOSTREE_DEPENDENCIES += libselinux
 else
 LIBOSTREE_CONF_OPTS += --without-selinux
+endif
+
+ifeq ($(BR2_INIT_SYSTEMD),y)
+LIBOSTREE_CONF_OPTS += \
+	--with-libsystemd \
+	--with-systemdsystemunitdir=/usr/lib/systemd/system
+LIBOSTREE_DEPENDENCIES += systemd
+else
+LIBOSTREE_CONF_OPTS += --without-libsystemd
 endif
 
 $(eval $(autotools-package))

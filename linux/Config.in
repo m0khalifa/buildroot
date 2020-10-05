@@ -2,15 +2,12 @@ menu "Kernel"
 
 config BR2_LINUX_KERNEL
 	bool "Linux Kernel"
+	select BR2_PACKAGE_HOST_IMAGEMAGICK if BR2_LINUX_KERNEL_CUSTOM_LOGO_PATH != ""
 	help
 	  Enable this option if you want to build a Linux kernel for
 	  your embedded device
 
 if BR2_LINUX_KERNEL
-
-comment "Linux kernel in thumb mode may be broken with binutils >= 2.29"
-	depends on BR2_arm || BR2_armeb
-	depends on !BR2_BINUTILS_VERSION_2_28_X
 
 # Packages that need to have a kernel with support for loadable modules,
 # but do not use the kernel-modules infrastructure, should select that
@@ -30,10 +27,10 @@ choice
 	prompt "Kernel version"
 
 config BR2_LINUX_KERNEL_LATEST_VERSION
-	bool "Latest version (4.18)"
+	bool "Latest version (5.8)"
 
 config BR2_LINUX_KERNEL_LATEST_CIP_VERSION
-	bool "Latest CIP SLTS version (v4.4.154-cip28)"
+	bool "Latest CIP SLTS version (4.19.132-cip30)"
 	help
 	  CIP launched in the spring of 2016 to address the needs of
 	  organizations in industries such as power generation and
@@ -47,6 +44,17 @@ config BR2_LINUX_KERNEL_LATEST_CIP_VERSION
 	  these requirements.
 
 	  The CIP community plans to maintain 4.4 for security and
+	  bug fixes for more than 10 years.
+
+	  https://www.cip-project.org
+
+config BR2_LINUX_KERNEL_LATEST_CIP_RT_VERSION
+	bool "Latest CIP RT SLTS version (4.19.132-cip30-rt12)"
+	help
+	  Same as the CIP version, but this is the PREEMPT_RT realtime
+	  variant.
+
+	  The CIP community plans to maintain 4.19 for security and
 	  bug fixes for more than 10 years.
 
 	  https://www.cip-project.org
@@ -105,13 +113,9 @@ if BR2_LINUX_KERNEL_CUSTOM_GIT || BR2_LINUX_KERNEL_CUSTOM_HG || BR2_LINUX_KERNEL
 
 config BR2_LINUX_KERNEL_CUSTOM_REPO_URL
 	string "URL of custom repository"
-	default BR2_LINUX_KERNEL_CUSTOM_GIT_REPO_URL \
-		if BR2_LINUX_KERNEL_CUSTOM_GIT_REPO_URL != ""  # legacy
 
 config BR2_LINUX_KERNEL_CUSTOM_REPO_VERSION
 	string "Custom repository version"
-	default BR2_LINUX_KERNEL_CUSTOM_GIT_VERSION \
-		if BR2_LINUX_KERNEL_CUSTOM_GIT_VERSION != ""  # legacy
 	help
 	  Revision to use in the typical format used by
 	  Git/Mercurial/Subversion E.G. a sha id, a tag, branch, ..
@@ -120,8 +124,9 @@ endif
 
 config BR2_LINUX_KERNEL_VERSION
 	string
-	default "4.18.20" if BR2_LINUX_KERNEL_LATEST_VERSION
-	default "v4.4.154-cip28" if BR2_LINUX_KERNEL_LATEST_CIP_VERSION
+	default "5.8.13" if BR2_LINUX_KERNEL_LATEST_VERSION
+	default "4.19.132-cip30" if BR2_LINUX_KERNEL_LATEST_CIP_VERSION
+	default "4.19.132-cip30-rt12" if BR2_LINUX_KERNEL_LATEST_CIP_RT_VERSION
 	default BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE \
 		if BR2_LINUX_KERNEL_CUSTOM_VERSION
 	default "custom" if BR2_LINUX_KERNEL_CUSTOM_TARBALL
@@ -221,7 +226,7 @@ config BR2_LINUX_KERNEL_APPENDED_UIMAGE
 
 config BR2_LINUX_KERNEL_BZIMAGE
 	bool "bzImage"
-	depends on BR2_i386 || BR2_x86_64
+	depends on BR2_i386 || BR2_x86_64 || BR2_s390x
 
 config BR2_LINUX_KERNEL_ZIMAGE
 	bool "zImage"
@@ -255,7 +260,7 @@ config BR2_LINUX_KERNEL_SIMPLEIMAGE
 
 config BR2_LINUX_KERNEL_IMAGE
 	bool "Image"
-	depends on BR2_aarch64
+	depends on BR2_aarch64 || BR2_riscv
 
 config BR2_LINUX_KERNEL_LINUX_BIN
 	bool "linux.bin"
@@ -316,6 +321,9 @@ config BR2_LINUX_KERNEL_LZO
 config BR2_LINUX_KERNEL_XZ
 	bool "xz compression"
 
+config BR2_LINUX_KERNEL_ZSTD
+	bool "zstd compression"
+
 endchoice
 
 config BR2_LINUX_KERNEL_IMAGE_TARGET_NAME
@@ -329,10 +337,10 @@ config BR2_LINUX_KERNEL_IMAGE_NAME
 	string "Kernel image name"
 	depends on BR2_LINUX_KERNEL_IMAGE_TARGET_CUSTOM
 	help
-	  The filename of the kernel image, if it is different from the
-	  make target (above). Only Xtensa uses a filename different
-	  from the make target. Defaults to
-	  BR2_LINUX_KERNEL_IMAGE_TARGET_NAME.
+	  The filename of the kernel image, if it is different from
+	  the make target (above). Defaults to
+	  BR2_LINUX_KERNEL_IMAGE_TARGET_NAME. If specified, the
+	  filename is relative to arch/ARCH/boot/.
 
 	  If unsure, leave it empty.
 
@@ -373,7 +381,13 @@ if BR2_LINUX_KERNEL_DTS_SUPPORT
 # The variable below address the second case, were you only want
 # limited actions from buildroot.
 config BR2_LINUX_KERNEL_DTB_IS_SELF_BUILT
-	bool
+	bool "DTB is built by kernel itself"
+	help
+	  Normally, the device tree(s) to be built have to be passed
+	  explicitly to the kernel build system. For some binary
+	  formats, however, the kernel build system links in the
+	  device tree directly in the kernel binary. Select this option
+	  if you have such a kernel binary format.
 
 config BR2_LINUX_KERNEL_APPENDED_DTB
 	bool
@@ -391,6 +405,21 @@ config BR2_LINUX_KERNEL_CUSTOM_DTS_PATH
 	  Path to to out-of-tree device tree source files.
 	  You can provide a list of dts paths to copy and
 	  build, separated by spaces.
+
+config BR2_LINUX_KERNEL_DTB_KEEP_DIRNAME
+	bool "Keep the directory name of the Device Tree"
+	help
+	  If enabled, the device tree blobs keep their
+	  directory prefixes when they get copied to the
+	  output image directory or the target directory.
+
+config BR2_LINUX_KERNEL_DTB_OVERLAY_SUPPORT
+	bool "Build Device Tree with overlay support"
+	help
+	  If enabled, pass the "-@" option to dtc, such that
+	  symbols are generated in the compiled Device Tree.
+	  Choose this option to support Device Tree overlays
+	  on the target system.
 
 endif
 

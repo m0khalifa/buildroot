@@ -1,5 +1,3 @@
-# From https://lists.freedesktop.org/archives/dri-devel/2018-October/193244.html
-md5 f296d87272b1befeada3bb135751ab3d  libdrm-2.4.96.tar.bz2
-sha1 51eb4c248a437b3f200bd1cd84461d3e0b60d71e  libdrm-2.4.96.tar.bz2
-sha256 0d561acf7bb4cc59dc82415100e6c1a44860e8c380e00f9592923e3cd08db393  libdrm-2.4.96.tar.bz2
-sha512 008cb7658d953b44e11fa3cc6e00dfeb3efb59c7fdadd59f7066101aff138acbbc2f2508e9ebe0528340e39dc7693937755d1641816ddde135c10a13e7d81e3b  libdrm-2.4.96.tar.bz2
+# From https://lists.freedesktop.org/archives/dri-devel/2020-May/267255.html
+sha256  8bcbf9336c28e393d76c1f16d7e79e394a7fce8a2e929d52d3ad7ad8525ba05b  libdrm-2.4.102.tar.xz
+sha512  386afd228efd809fe32776a6ff5d9dd95d1409a6a6a89b3806a3b42ed27e84f1e090f3b7834973f834d6b0d1342b7034447fe8690d072f85f03292d7795c3e0c  libdrm-2.4.102.tar.xz
